@@ -55,10 +55,8 @@
     tr:hover { background-color: #f1f3f5; }
     .status-pending { background: #ffeeba; color: #856404; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
     .status-inspected { background: #c3e6cb; color: #155724; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
-    .status-done { background: #d4edda; color: #155724; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
-    .status-not-ready { background: #f8d7da; color: #721c24; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
-    .status-ready { background: #cce5ff; color: #004085; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
-  </style>
+   .status-done-not-ready { background: #fff3cd; color: #856404; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
+    .status-ready { background: #d4edda; color: #155724; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
 <style>
         @font-face {
             font-family: 'NotoSans_online_security'; 
@@ -395,7 +393,7 @@
         gitToken = prompt("Enter the access password to edit:");
         if (!gitToken) return;
 
-        // 2. Convert Status Spans to Dropdowns with Corrected Options
+        // 2. Convert Status Spans to Dropdowns with Exact Options
         document.querySelectorAll('span[class^="status-"]').forEach(span => {
           let val = span.innerText.trim();
           let select = document.createElement('select');
@@ -404,9 +402,8 @@
           select.innerHTML = `
             <option value="Pending" ${val === 'Pending' ? 'selected' : ''}>Pending</option>
             <option value="Inspected with comments" ${val === 'Inspected with comments' ? 'selected' : ''}>Inspected with comments</option>
-            <option value="Done" ${val === 'Done' ? 'selected' : ''}>Done</option>
-            <option value="Not ready" ${val === 'Not ready' ? 'selected' : ''}>Not ready</option>
-            <option value="Ready for inspection" ${val === 'Ready for inspection' ? 'selected' : ''}>Ready for inspection</option>
+            <option value="done/not ready" ${val === 'done/not ready' ? 'selected' : ''}>done/not ready</option>
+            <option value="ready for inspection" ${val === 'ready for inspection' ? 'selected' : ''}>ready for inspection</option>
           `;
           span.replaceWith(select);
         });
@@ -426,15 +423,15 @@
       } else {
         this.innerText = "⏳ Saving...";
         
-        // 1. Revert Dropdowns back to standard text labels and apply correct colors
+        // 1. Revert Dropdowns back to standard text labels and apply exact colors
         document.querySelectorAll('td select').forEach(select => {
           let val = select.value;
           let span = document.createElement('span');
           
           let cls = 'status-pending';
           if (val === 'Inspected with comments') cls = 'status-inspected';
-          if (val === 'Done/Not ready') cls = 'status-done/not-ready';
-          if (val === 'Ready for inspection') cls = 'status-ready';
+          if (val === 'done/not ready') cls = 'status-done-not-ready';
+          if (val === 'ready for inspection') cls = 'status-ready';
           
           span.className = cls;
           span.innerText = val;
@@ -487,4 +484,3 @@
       }
     });
   </script>
-<grammarly-desktop-integration data-grammarly-shadow-root="true" style="visibility: visible !important;"></grammarly-desktop-integration></body></html>
