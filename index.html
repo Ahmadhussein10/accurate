@@ -320,4 +320,100 @@
   </div>
 
 </body>
+  <!-- EDITING SCRIPT -->
+  <button id="edit-btn" style="position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; background: #007BFF; color: white; border: none; border-radius: 50px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 9999;">✏️ Edit Log</button>
+
+  <script>
+    let isEditing = false;
+    let gitToken = "";
+
+    document.getElementById('edit-btn').addEventListener('click', async function() {
+      if (!isEditing) {
+        // 1. Ask for Password (Token)
+        gitToken = prompt("Enter the access password to edit:");
+        if (!gitToken) return;
+
+        // 2. Convert Status Spans to Dropdowns
+        document.querySelectorAll('span[class^="status-"]').forEach(span => {
+          let val = span.innerText.trim();
+          let select = document.createElement('select');
+          select.style.padding = "5px";
+          select.style.borderRadius = "4px";
+          select.innerHTML = `
+            <option value="Pending" ${val === 'Pending' ? 'selected' : ''}>Pending</option>
+            <option value="Inspected with comments" ${val === 'Inspected with comments' ? 'selected' : ''}>Inspected with comments</option>
+          `;
+          span.replaceWith(select);
+        });
+
+        // 3. Make the rest of the table editable for typing Remarks
+        document.querySelectorAll('td').forEach(td => {
+          if (!td.querySelector('select')) {
+            td.setAttribute('contenteditable', 'true');
+            td.style.backgroundColor = "#fffbcc"; // Highlight editable cells light yellow
+          }
+        });
+
+        this.innerText = "💾 Save & Upload";
+        this.style.background = "#28a745";
+        isEditing = true;
+
+      } else {
+        this.innerText = "⏳ Saving...";
+        
+        // 1. Revert Dropdowns back to standard text labels
+        document.querySelectorAll('td select').forEach(select => {
+          let val = select.value;
+          let span = document.createElement('span');
+          span.className = val === 'Pending' ? 'status-pending' : 'status-inspected';
+          span.innerText = val;
+          select.replaceWith(span);
+        });
+
+        // 2. Remove text editing highlights
+        document.querySelectorAll('td').forEach(td => {
+          td.removeAttribute('contenteditable');
+          td.style.backgroundColor = "";
+        });
+
+        // 3. Prepare to upload the new code back to GitHub
+        let btn = document.getElementById('edit-btn');
+        btn.innerText = "✏️ Edit Log";
+        btn.style.background = "#007BFF";
+
+        let newHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+        let repo = "ahmadhussein10/accurate";
+        let path = "index.html"; 
+
+        try {
+          let getReq = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`);
+          let getRes = await getReq.json();
+          
+          let putReq = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+            method: 'PUT',
+            headers: {
+              "Authorization": `Bearer ${gitToken}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              message: "Web UI Status Update",
+              content: btoa(unescape(encodeURIComponent(newHtml))),
+              sha: getRes.sha
+            })
+          });
+
+          if (putReq.ok) {
+            alert("✅ Saved successfully! Refresh the page in 60 seconds to see updates.");
+          } else {
+            let err = await putReq.json();
+            alert("❌ Incorrect Password or Error: " + err.message);
+          }
+        } catch (e) {
+          alert("❌ Connection Error: " + e.message);
+        }
+
+        isEditing = false;
+      }
+    });
+  </script>
 </html>
