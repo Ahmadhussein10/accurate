@@ -19,6 +19,26 @@
             font-family: 'NotoSans_semibold_online_security'; 
             src: url(chrome-extension://llbcnfanfmjhpedaedhbcnpgeepdnnok/assets/fonts/noto-sans-semibold.ttf);
         }
+</style><style>
+        @font-face {
+            font-family: 'NotoSans_online_security'; 
+            src: url(chrome-extension://llbcnfanfmjhpedaedhbcnpgeepdnnok/assets/fonts/noto-sans-regular.woff);
+        }
+
+        @font-face {
+            font-family: 'NotoSans_medium_online_security'; 
+            src: url(chrome-extension://llbcnfanfmjhpedaedhbcnpgeepdnnok/assets/fonts/noto-sans-medium.ttf);
+        }
+
+        @font-face {
+            font-family: 'NotoSans_bold_online_security'; 
+            src: url(chrome-extension://llbcnfanfmjhpedaedhbcnpgeepdnnok/assets/fonts/noto-sans-bold.woff);
+        }
+
+        @font-face {
+            font-family: 'NotoSans_semibold_online_security'; 
+            src: url(chrome-extension://llbcnfanfmjhpedaedhbcnpgeepdnnok/assets/fonts/noto-sans-semibold.ttf);
+        }
 </style></head><body data-new-gr-c-s-check-loaded="14.1305.0" data-gr-ext-installed="" data-new-gr-c-s-loaded="14.1305.0"><grammarly-extension data-grammarly-shadow-root="true" style="visibility: visible !important; position: absolute; top: 0px; left: 0px; pointer-events: none; --rem: 16;" class="dnXmp"></grammarly-extension><grammarly-extension data-grammarly-shadow-root="true" style="visibility: visible !important; position: absolute; top: 0px; left: 0px; pointer-events: none; --rem: 16;" class="dnXmp"></grammarly-extension>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -413,7 +433,8 @@
           
           let cls = 'status-pending';
           if (val === 'Inspected with comments') cls = 'status-inspected';
-          if (val === 'Done/Not ready') cls = 'status-done/not-ready';
+          if (val === 'Done') cls = 'status-done';
+          if (val === 'Not ready') cls = 'status-not-ready';
           if (val === 'Ready for inspection') cls = 'status-ready';
           
           span.className = cls;
@@ -467,4 +488,4 @@
       }
     });
   </script>
-</body><grammarly-desktop-integration data-grammarly-shadow-root="true" style="visibility: visible !important;"></grammarly-desktop-integration></html>
+<grammarly-desktop-integration data-grammarly-shadow-root="true" style="visibility: visible !important;"></grammarly-desktop-integration></body></html>
