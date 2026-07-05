@@ -390,30 +390,79 @@
     </tbody></table>
   </div>
 
-  <!-- 5. TARGET FORECAST -->
-  <h2>Target_Forecast</h2>
-  <div class="table-container" style="max-height: 300px;">
-    <table>
-      <tbody><tr><th>Day</th><th>Target</th></tr>
-      <tr><td style="">Day 1</td><td style="">2</td></tr><tr><td style="">Day 2</td><td style="">4</td></tr><tr><td style="">Day 3</td><td style="">6</td></tr><tr><td style="">Day 4</td><td style="">8</td></tr><tr><td style="">Day 5</td><td style="">10</td></tr><tr><td style="">Day 6</td><td style="">12</td></tr><tr><td style="">Day 7</td><td style="">14</td></tr><tr><td style="">Day 8</td><td style="">16</td></tr><tr><td style="">Day 9</td><td style="">18</td></tr><tr><td style="">Day 10</td><td style="">20</td></tr><tr><td style="">Day 11</td><td style="">22</td></tr><tr><td style="">Day 12</td><td style="">24</td></tr><tr><td style="">Day 13</td><td style="">26</td></tr><tr><td style="">Day 14</td><td style="">28</td></tr><tr><td style="">Day 15</td><td style="">30</td></tr><tr><td style="">Day 16</td><td style="">32</td></tr><tr><td style="">Day 17</td><td style="">34</td></tr><tr><td style="">Day 18</td><td style="">36</td></tr><tr><td style="">Day 19</td><td style="">38</td></tr><tr><td style="">Day 20</td><td style="">40</td></tr><tr><td style="">Day 21</td><td style="">42</td></tr><tr><td style="">Day 22</td><td style="">44</td></tr><tr><td style="">Day 23</td><td style="">46</td></tr><tr><td style="">Day 24</td><td style="">48</td></tr><tr><td style="">Day 25</td><td style="">50</td></tr><tr><td style="">Day 26</td><td style="">52</td></tr><tr><td style="">Day 27</td><td style="">54</td></tr><tr><td style="">Day 28</td><td style="">56</td></tr><tr><td style="">Day 29</td><td style="">58</td></tr><tr><td style="">Day 30</td><td style="">60</td></tr><tr><td style="">Day 31</td><td style="">62</td></tr><tr><td style="">Day 32</td><td style="">64</td></tr><tr><td style="">Day 33</td><td style="">66</td></tr><tr><td style="">Day 34</td><td style="">68</td></tr><tr><td style="">Day 35</td><td style="">70</td></tr><tr><td style="">Day 36</td><td style="">72</td></tr><tr><td style="">Day 37</td><td style="">74</td></tr><tr><td style="">Day 38</td><td style="">76</td></tr><tr><td style="">Day 39</td><td style="">78</td></tr><tr><td style="">Day 40</td><td style="">80</td></tr><tr><td style="">Day 41</td><td style="">82</td></tr><tr><td style="">Day 42</td><td style="">84</td></tr><tr><td style="">Day 43</td><td style="">86</td></tr><tr><td style="">Day 44</td><td style="">88</td></tr><tr><td style="">Day 45</td><td style="">90</td></tr><tr><td style="">Day 46</td><td style="">92</td></tr><tr><td style="">Day 47</td><td style="">94</td></tr><tr><td style="">Day 48</td><td style="">96</td></tr><tr><td style="">Day 49</td><td style="">98</td></tr><tr><td style="">Day 50</td><td style="">100</td></tr><tr><td style="">Day 51</td><td style="">102</td></tr><tr><td style="">Day 52</td><td style="">104</td></tr><tr><td style="">Day 53</td><td style="">106</td></tr><tr><td style="">Day 54</td><td style="">108</td></tr><tr><td style="">Day 55</td><td style="">110</td></tr>
-    </tbody></table>
-  </div>
 
-
-  
   <button id="edit-btn" style="position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; background: rgb(0, 123, 255); color: white; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 50px; font-size: 16px; font-weight: bold; box-shadow: rgba(0, 0, 0, 0.3) 0px 4px 10px; cursor: pointer; z-index: 9999;">✏️ Edit Log</button>
 
-  <script>
+<script>
     let isEditing = false;
     let gitToken = "";
 
+    // --- NEW: Live Dashboard Calculator ---
+    function updateDashboard() {
+        let tables = document.querySelectorAll('table');
+        if (tables.length < 6) return; 
+        
+        // This maps the Dashboard rows to the correct tables and status columns
+        let mappings = [
+            { dashRow: 1, tableIdx: 1, statusColIdx: 3 }, // MV-Cable Terminations
+            { dashRow: 2, tableIdx: 2, statusColIdx: 3 }, // MV-Cable Joints
+            { dashRow: 3, tableIdx: 3, statusColIdx: 2 }, // F.O. Terminations
+            { dashRow: 4, tableIdx: 5, statusColIdx: 1 }  // Construction View
+        ];
+        
+        let dashTable = tables[0];
+        
+        mappings.forEach(map => {
+            let targetTable = tables[map.tableIdx];
+            if (!targetTable) return;
+            
+            let total = 0;
+            let inspectedCount = 0;
+            
+            let trs = targetTable.querySelectorAll('tr');
+            for(let i = 1; i < trs.length; i++) {
+                let cells = trs[i].querySelectorAll('td');
+                if (cells.length > map.statusColIdx) {
+                    total++; // Count total scope
+                    let cell = cells[map.statusColIdx];
+                    
+                    let statusText = "";
+                    let select = cell.querySelector('select');
+                    let span = cell.querySelector('span');
+                    
+                    // Get the current text whether it is a dropdown or a saved label
+                    if (select) statusText = select.value.toLowerCase();
+                    else if (span) statusText = span.innerText.toLowerCase();
+                    
+                    // Define what counts toward the "Progress %"
+                    if (statusText === 'inspected with comments' || statusText === 'ready for inspection' || statusText === 'done') {
+                        inspectedCount++;
+                    }
+                }
+            }
+            
+            // Update the specific row in the Dashboard
+            let dashRows = dashTable.querySelectorAll('tr');
+            if (dashRows.length > map.dashRow) {
+                let dCells = dashRows[map.dashRow].querySelectorAll('td');
+                if (dCells.length >= 5) {
+                    dCells[1].innerText = total;
+                    dCells[2].innerText = inspectedCount;
+                    dCells[3].innerText = total - inspectedCount; // Pending count
+                    dCells[4].innerText = total > 0 ? ((inspectedCount / total) * 100).toFixed(1) + "%" : "0.0%";
+                }
+            }
+        });
+    }
+
+    // --- Editor Logic ---
     document.getElementById('edit-btn').addEventListener('click', async function() {
       if (!isEditing) {
-        // 1. Ask for Password (Token)
+        // Ask for Password (Token)
         gitToken = prompt("Enter the access password to edit:");
         if (!gitToken) return;
 
-        // 2. Convert Status Spans to Dropdowns with Exact Options
+        // Convert Status Spans to Dropdowns
         document.querySelectorAll('span[class^="status-"]').forEach(span => {
           let val = span.innerText.trim();
           let select = document.createElement('select');
@@ -422,13 +471,17 @@
           select.innerHTML = `
             <option value="Pending" ${val === 'Pending' ? 'selected' : ''}>Pending</option>
             <option value="Inspected with comments" ${val === 'Inspected with comments' ? 'selected' : ''}>Inspected with comments</option>
+            <option value="Done" ${val === 'Done' ? 'selected' : ''}>Done</option>
             <option value="done/not ready" ${val === 'done/not ready' ? 'selected' : ''}>done/not ready</option>
             <option value="ready for inspection" ${val === 'ready for inspection' ? 'selected' : ''}>ready for inspection</option>
           `;
+          
+          // Trigger the dashboard calculator every time a dropdown is changed!
+          select.addEventListener('change', updateDashboard);
           span.replaceWith(select);
         });
 
-        // 3. Make the rest of the table editable
+        // Make the rest of the table editable
         document.querySelectorAll('td').forEach(td => {
           if (!td.querySelector('select')) {
             td.setAttribute('contenteditable', 'true');
@@ -443,13 +496,17 @@
       } else {
         this.innerText = "⏳ Saving...";
         
-        // 1. Revert Dropdowns back to standard text labels and apply exact colors
+        // Force one final dashboard calculation before saving to be safe
+        updateDashboard();
+        
+        // Revert Dropdowns back to colored text labels
         document.querySelectorAll('td select').forEach(select => {
           let val = select.value;
           let span = document.createElement('span');
           
           let cls = 'status-pending';
           if (val === 'Inspected with comments') cls = 'status-inspected';
+          if (val === 'Done') cls = 'status-done';
           if (val === 'done/not ready') cls = 'status-done-not-ready';
           if (val === 'ready for inspection') cls = 'status-ready';
           
@@ -458,13 +515,13 @@
           select.replaceWith(span);
         });
 
-        // 2. Remove text editing highlights
+        // Remove text editing highlights
         document.querySelectorAll('td').forEach(td => {
           td.removeAttribute('contenteditable');
           td.style.backgroundColor = "";
         });
 
-        // 3. Prepare to upload the new code back to GitHub
+        // Prepare to upload the new code back to GitHub
         let btn = document.getElementById('edit-btn');
         btn.innerText = "✏️ Edit Log";
         btn.style.background = "#007BFF";
@@ -484,7 +541,7 @@
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              message: "Web UI Status Update",
+              message: "Dashboard and Status Update via Web",
               content: btoa(unescape(encodeURIComponent(newHtml))),
               sha: getRes.sha
             })
