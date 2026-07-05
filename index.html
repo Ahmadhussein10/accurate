@@ -413,76 +413,93 @@
 
   <button id="edit-btn" style="position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; background: rgb(0, 123, 255); color: white; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 50px; font-size: 16px; font-weight: bold; box-shadow: rgba(0, 0, 0, 0.3) 0px 4px 10px; cursor: pointer; z-index: 9999;">✏️ Edit Log</button>
 
-<script>
+<!-- EDITING SCRIPT & BUTTONS -->
+  <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; gap: 10px;">
+    <button id="refresh-btn" style="padding: 15px 20px; background: #6c757d; color: white; border: none; border-radius: 50px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;">🔄 Force Refresh</button>
+    <button id="edit-btn" style="padding: 15px 25px; background: #007BFF; color: white; border: none; border-radius: 50px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;">✏️ Edit Log</button>
+  </div>
+
+  <script>
+    // --- Anti-Cache Refresh Button ---
+    document.getElementById('refresh-btn').addEventListener('click', function() {
+        this.innerText = "↻ Reloading...";
+        // Adds a timestamp to the URL to completely bypass the browser's saved cache
+        window.location.href = window.location.pathname + '?t=' + new Date().getTime();
+    });
+
     let isEditing = false;
     let gitToken = "";
 
-    // --- NEW: Live Dashboard Calculator ---
+    // --- Bulletproof Dashboard Calculator ---
     function updateDashboard() {
-        let tables = document.querySelectorAll('table');
-        if (tables.length < 6) return; 
-        
-        // This maps the Dashboard rows to the correct tables and status columns
-        let mappings = [
-            { dashRow: 1, tableIdx: 1, statusColIdx: 3 }, // MV-Cable Terminations
-            { dashRow: 2, tableIdx: 2, statusColIdx: 3 }, // MV-Cable Joints
-            { dashRow: 3, tableIdx: 3, statusColIdx: 2 }, // F.O. Terminations
-            { dashRow: 4, tableIdx: 5, statusColIdx: 1 }  // Construction View
-        ];
-        
-        let dashTable = tables[0];
-        
-        mappings.forEach(map => {
-            let targetTable = tables[map.tableIdx];
-            if (!targetTable) return;
+        try {
+            let tables = document.querySelectorAll('table');
+            let dashTable = tables[0];
+            let dashRows = dashTable.querySelectorAll('tr');
             
-            let total = 0;
-            let inspectedCount = 0;
-            
-            let trs = targetTable.querySelectorAll('tr');
-            for(let i = 1; i < trs.length; i++) {
-                let cells = trs[i].querySelectorAll('td');
-                if (cells.length > map.statusColIdx) {
-                    total++; // Count total scope
-                    let cell = cells[map.statusColIdx];
-                    
-                    let statusText = "";
-                    let select = cell.querySelector('select');
-                    let span = cell.querySelector('span');
-                    
-                    // Get the current text whether it is a dropdown or a saved label
-                    if (select) statusText = select.value.toLowerCase();
-                    else if (span) statusText = span.innerText.toLowerCase();
-                    
-                    // Define what counts toward the "Progress %"
-                    if (statusText === 'inspected with comments' || statusText === 'ready for inspection' || statusText === 'done') {
-                        inspectedCount++;
+            // Helper function to count statuses in a specific column of a specific table
+            function calcTableProgress(tableIndex, colIndex) {
+                let table = tables[tableIndex];
+                if (!table) return { total: 0, completed: 0 };
+                let total = 0, completed = 0;
+                let trs = table.querySelectorAll('tr');
+                
+                for(let i = 1; i < trs.length; i++) {
+                    let cells = trs[i].querySelectorAll('td');
+                    if(cells.length > colIndex) {
+                        total++;
+                        let cell = cells[colIndex];
+                        let text = "";
+                        if(cell.querySelector('select')) text = cell.querySelector('select').value.toLowerCase();
+                        else if(cell.querySelector('span')) text = cell.innerText.toLowerCase();
+                        
+                        // What counts as progress for the percentage:
+                        if(text.includes('inspected') || text.includes('ready for inspection') || text === 'done') {
+                            completed++;
+                        }
                     }
                 }
+                return { total, completed };
             }
-            
-            // Update the specific row in the Dashboard
-            let dashRows = dashTable.querySelectorAll('tr');
-            if (dashRows.length > map.dashRow) {
-                let dCells = dashRows[map.dashRow].querySelectorAll('td');
-                if (dCells.length >= 5) {
-                    dCells[1].innerText = total;
-                    dCells[2].innerText = inspectedCount;
-                    dCells[3].innerText = total - inspectedCount; // Pending count
-                    dCells[4].innerText = total > 0 ? ((inspectedCount / total) * 100).toFixed(1) + "%" : "0.0%";
+
+            function updateDashRow(row, stats) {
+                if(!row) return;
+                let cells = row.querySelectorAll('td');
+                if(cells.length >= 5) {
+                    cells[1].innerText = stats.total;
+                    cells[2].innerText = stats.completed;
+                    cells[3].innerText = stats.total - stats.completed;
+                    cells[4].innerText = stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(1) + "%" : "0.0%";
                 }
             }
-        });
+
+            // Update Row 1: MV Terminations (Table 1, Status is Column 3)
+            updateDashRow(dashRows[1], calcTableProgress(1, 3));
+            
+            // Update Row 2: MV Joints (Table 2, Status is Column 3)
+            updateDashRow(dashRows[2], calcTableProgress(2, 3));
+            
+            // Update Row 3: FO Terminations (Table 3, Status is Column 2)
+            updateDashRow(dashRows[3], calcTableProgress(3, 2));
+            
+            // Update Row 4: Construction View (Sum of Table 1 Col 4 + Table 2 Col 4)
+            if(dashRows[4]) {
+                let t1 = calcTableProgress(1, 4); // Construction view in MV Terminations
+                let t2 = calcTableProgress(2, 4); // Construction view in MV Joints
+                updateDashRow(dashRows[4], { 
+                    total: t1.total + t2.total, 
+                    completed: t1.completed + t2.completed 
+                });
+            }
+        } catch(e) { console.error("Dashboard math error:", e); }
     }
 
-    // --- Editor Logic ---
+    // --- Main Editor Logic ---
     document.getElementById('edit-btn').addEventListener('click', async function() {
       if (!isEditing) {
-        // Ask for Password (Token)
         gitToken = prompt("Enter the access password to edit:");
         if (!gitToken) return;
 
-        // Convert Status Spans to Dropdowns
         document.querySelectorAll('span[class^="status-"]').forEach(span => {
           let val = span.innerText.trim();
           let select = document.createElement('select');
@@ -496,12 +513,10 @@
             <option value="ready for inspection" ${val === 'ready for inspection' ? 'selected' : ''}>ready for inspection</option>
           `;
           
-          // Trigger the dashboard calculator every time a dropdown is changed!
           select.addEventListener('change', updateDashboard);
           span.replaceWith(select);
         });
 
-        // Make the rest of the table editable
         document.querySelectorAll('td').forEach(td => {
           if (!td.querySelector('select')) {
             td.setAttribute('contenteditable', 'true');
@@ -515,11 +530,8 @@
 
       } else {
         this.innerText = "⏳ Saving...";
+        updateDashboard(); // Final check before saving
         
-        // Force one final dashboard calculation before saving to be safe
-        updateDashboard();
-        
-        // Revert Dropdowns back to colored text labels
         document.querySelectorAll('td select').forEach(select => {
           let val = select.value;
           let span = document.createElement('span');
@@ -535,13 +547,11 @@
           select.replaceWith(span);
         });
 
-        // Remove text editing highlights
         document.querySelectorAll('td').forEach(td => {
           td.removeAttribute('contenteditable');
           td.style.backgroundColor = "";
         });
 
-        // Prepare to upload the new code back to GitHub
         let btn = document.getElementById('edit-btn');
         btn.innerText = "✏️ Edit Log";
         btn.style.background = "#007BFF";
@@ -561,17 +571,17 @@
               "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              message: "Dashboard and Status Update via Web",
+              message: "Web UI Status & Dashboard Update",
               content: btoa(unescape(encodeURIComponent(newHtml))),
               sha: getRes.sha
             })
           });
 
           if (putReq.ok) {
-            alert("✅ Saved successfully! Refresh the page in 60 seconds to see updates.");
+            alert("✅ Saved to GitHub! Wait about 60-90 seconds, then tap the gray 'Force Refresh' button to see the live page update.");
           } else {
             let err = await putReq.json();
-            alert("❌ Incorrect Password or Error: " + err.message);
+            alert("❌ Error saving: " + err.message);
           }
         } catch (e) {
           alert("❌ Connection Error: " + e.message);
