@@ -411,8 +411,6 @@
   </div>
 
 
-  <button id="edit-btn" style="position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; background: rgb(0, 123, 255); color: white; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 50px; font-size: 16px; font-weight: bold; box-shadow: rgba(0, 0, 0, 0.3) 0px 4px 10px; cursor: pointer; z-index: 9999;">✏️ Edit Log</button>
-
 <!-- EDITING SCRIPT & BUTTONS -->
   <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; gap: 10px;">
     <button id="refresh-btn" style="padding: 15px 20px; background: #6c757d; color: white; border: none; border-radius: 50px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer;">🔄 Force Refresh</button>
@@ -420,89 +418,22 @@
   </div>
 
   <script>
-    // --- Anti-Cache Refresh Button ---
-    document.getElementById('refresh-btn').addEventListener('click', function() {
+    var isEditing = false;
+    var gitToken = "";
+
+    document.getElementById('refresh-btn').onclick = function() {
         this.innerText = "↻ Reloading...";
-        // Adds a timestamp to the URL to completely bypass the browser's saved cache
         window.location.href = window.location.pathname + '?t=' + new Date().getTime();
-    });
+    };
 
-    let isEditing = false;
-    let gitToken = "";
-
-    // --- Bulletproof Dashboard Calculator ---
-    function updateDashboard() {
-        try {
-            let tables = document.querySelectorAll('table');
-            let dashTable = tables[0];
-            let dashRows = dashTable.querySelectorAll('tr');
-            
-            // Helper function to count statuses in a specific column of a specific table
-            function calcTableProgress(tableIndex, colIndex) {
-                let table = tables[tableIndex];
-                if (!table) return { total: 0, completed: 0 };
-                let total = 0, completed = 0;
-                let trs = table.querySelectorAll('tr');
-                
-                for(let i = 1; i < trs.length; i++) {
-                    let cells = trs[i].querySelectorAll('td');
-                    if(cells.length > colIndex) {
-                        total++;
-                        let cell = cells[colIndex];
-                        let text = "";
-                        if(cell.querySelector('select')) text = cell.querySelector('select').value.toLowerCase();
-                        else if(cell.querySelector('span')) text = cell.innerText.toLowerCase();
-                        
-                        // What counts as progress for the percentage:
-                        if(text.includes('inspected') || text.includes('ready for inspection') || text === 'done') {
-                            completed++;
-                        }
-                    }
-                }
-                return { total, completed };
-            }
-
-            function updateDashRow(row, stats) {
-                if(!row) return;
-                let cells = row.querySelectorAll('td');
-                if(cells.length >= 5) {
-                    cells[1].innerText = stats.total;
-                    cells[2].innerText = stats.completed;
-                    cells[3].innerText = stats.total - stats.completed;
-                    cells[4].innerText = stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(1) + "%" : "0.0%";
-                }
-            }
-
-            // Update Row 1: MV Terminations (Table 1, Status is Column 3)
-            updateDashRow(dashRows[1], calcTableProgress(1, 3));
-            
-            // Update Row 2: MV Joints (Table 2, Status is Column 3)
-            updateDashRow(dashRows[2], calcTableProgress(2, 3));
-            
-            // Update Row 3: FO Terminations (Table 3, Status is Column 2)
-            updateDashRow(dashRows[3], calcTableProgress(3, 2));
-            
-            // Update Row 4: Construction View (Sum of Table 1 Col 4 + Table 2 Col 4)
-            if(dashRows[4]) {
-                let t1 = calcTableProgress(1, 4); // Construction view in MV Terminations
-                let t2 = calcTableProgress(2, 4); // Construction view in MV Joints
-                updateDashRow(dashRows[4], { 
-                    total: t1.total + t2.total, 
-                    completed: t1.completed + t2.completed 
-                });
-            }
-        } catch(e) { console.error("Dashboard math error:", e); }
-    }
-
-    // --- Main Editor Logic ---
-    document.getElementById('edit-btn').addEventListener('click', async function() {
+    document.getElementById('edit-btn').onclick = async function() {
       if (!isEditing) {
         gitToken = prompt("Enter the access password to edit:");
         if (!gitToken) return;
 
         document.querySelectorAll('span[class^="status-"]').forEach(span => {
-          let val = span.innerText.trim();
-          let select = document.createElement('select');
+          var val = span.innerText.trim();
+          var select = document.createElement('select');
           select.style.padding = "5px";
           select.style.borderRadius = "4px";
           select.innerHTML = `
@@ -513,7 +444,7 @@
             <option value="ready for inspection" ${val === 'ready for inspection' ? 'selected' : ''}>ready for inspection</option>
           `;
           
-          select.addEventListener('change', updateDashboard);
+          select.addEventListener('change', window.updateDashboard);
           span.replaceWith(select);
         });
 
@@ -530,13 +461,13 @@
 
       } else {
         this.innerText = "⏳ Saving...";
-        updateDashboard(); // Final check before saving
+        if(window.updateDashboard) window.updateDashboard(); 
         
         document.querySelectorAll('td select').forEach(select => {
-          let val = select.value;
-          let span = document.createElement('span');
+          var val = select.value;
+          var span = document.createElement('span');
           
-          let cls = 'status-pending';
+          var cls = 'status-pending';
           if (val === 'Inspected with comments') cls = 'status-inspected';
           if (val === 'Done') cls = 'status-done';
           if (val === 'done/not ready') cls = 'status-done-not-ready';
@@ -552,19 +483,19 @@
           td.style.backgroundColor = "";
         });
 
-        let btn = document.getElementById('edit-btn');
+        var btn = document.getElementById('edit-btn');
         btn.innerText = "✏️ Edit Log";
         btn.style.background = "#007BFF";
 
-        let newHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-        let repo = "ahmadhussein10/accurate";
-        let path = "index.html"; 
+        var newHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+        var repo = "ahmadhussein10/accurate";
+        var path = "index.html"; 
 
         try {
-          let getReq = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`);
-          let getRes = await getReq.json();
+          var getReq = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`);
+          var getRes = await getReq.json();
           
-          let putReq = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+          var putReq = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
             method: 'PUT',
             headers: {
               "Authorization": `Bearer ${gitToken}`,
@@ -578,9 +509,9 @@
           });
 
           if (putReq.ok) {
-            alert("✅ Saved to GitHub! Wait about 60-90 seconds, then tap the gray 'Force Refresh' button to see the live page update.");
+            alert("✅ Saved to GitHub! Wait about 60 seconds, then tap the gray 'Force Refresh' button.");
           } else {
-            let err = await putReq.json();
+            var err = await putReq.json();
             alert("❌ Error saving: " + err.message);
           }
         } catch (e) {
@@ -589,7 +520,62 @@
 
         isEditing = false;
       }
-    });
+    };
+
+    window.updateDashboard = function() {
+        try {
+            var tables = document.querySelectorAll('table');
+            var dashTable = tables[0];
+            var dashRows = dashTable.querySelectorAll('tr');
+            
+            function calcTableProgress(tableIndex, colIndex) {
+                var table = tables[tableIndex];
+                if (!table) return { total: 0, completed: 0 };
+                var total = 0, completed = 0;
+                var trs = table.querySelectorAll('tr');
+                
+                for(var i = 1; i < trs.length; i++) {
+                    var cells = trs[i].querySelectorAll('td');
+                    if(cells.length > colIndex) {
+                        total++;
+                        var cell = cells[colIndex];
+                        var text = "";
+                        if(cell.querySelector('select')) text = cell.querySelector('select').value.toLowerCase();
+                        else if(cell.querySelector('span')) text = cell.innerText.toLowerCase();
+                        
+                        if(text.includes('inspected') || text.includes('ready for inspection') || text === 'done') {
+                            completed++;
+                        }
+                    }
+                }
+                return { total, completed };
+            }
+
+            function updateDashRow(row, stats) {
+                if(!row) return;
+                var cells = row.querySelectorAll('td');
+                if(cells.length >= 5) {
+                    cells[1].innerText = stats.total;
+                    cells[2].innerText = stats.completed;
+                    cells[3].innerText = stats.total - stats.completed;
+                    cells[4].innerText = stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(1) + "%" : "0.0%";
+                }
+            }
+
+            if(dashRows[1]) updateDashRow(dashRows[1], calcTableProgress(1, 3));
+            if(dashRows[2]) updateDashRow(dashRows[2], calcTableProgress(2, 3));
+            if(dashRows[3]) updateDashRow(dashRows[3], calcTableProgress(3, 2));
+            
+            if(dashRows[4]) {
+                var t1 = calcTableProgress(1, 4); 
+                var t2 = calcTableProgress(2, 4); 
+                updateDashRow(dashRows[4], { 
+                    total: t1.total + t2.total, 
+                    completed: t1.completed + t2.completed 
+                });
+            }
+        } catch(e) { console.error("Math error:", e); }
+    };
   </script>
 <grammarly-desktop-integration data-grammarly-shadow-root="true" style="visibility: visible !important;"></grammarly-desktop-integration>
 <grammarly-popups data-grammarly-shadow-root="true" class="dnXmp" style="visibility: visible !important; --rem: 16;"></grammarly-popups><grammarly-extension-vbars data-grammarly-shadow-root="true" class="dnXmp" style="visibility: visible !important; display: contents; --rem: 16;"></grammarly-extension-vbars><grammarly-extension-vbar-card data-grammarly-shadow-root="true" class="dnXmp" style="visibility: visible !important; --rem: 16;"></grammarly-extension-vbar-card><grammarly-extension-vbars-feedback-form data-grammarly-shadow-root="true" class="dnXmp" style="visibility: visible !important; --rem: 16;"></grammarly-extension-vbars-feedback-form></body></html>
